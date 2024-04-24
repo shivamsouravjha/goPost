@@ -62,9 +62,16 @@ func parseCurlCommand(curlCommand string) map[string]interface{} {
 		rawData = dataRawMatch[1]
 		mode = "raw"
 	}
-	fmt.Println(parsedUrl.RequestURI())
+
+	// Extracting the last element of the path to use as the name
+	pathSegments := strings.Split(strings.Trim(parsedUrl.Path, "/"), "/")
+	name := "Generated from Curl"
+	if len(pathSegments) > 0 {
+		name = pathSegments[len(pathSegments)-1]
+	}
+
 	return map[string]interface{}{
-		"name": "Generated from Curl",
+		"name": name,
 		"protocolProfileBehavior": map[string]interface{}{
 			"disableBodyPruning": true,
 		},
