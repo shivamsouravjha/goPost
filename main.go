@@ -37,7 +37,6 @@ func parseCurlCommand(curlCommand string) map[string]interface{} {
 	if !strings.Contains(extractedUrl, "://") {
 		extractedUrl = "http://" + extractedUrl
 	}
-	fmt.Println(extractedUrl)
 	parsedUrl, err := url.Parse(extractedUrl)
 	if err != nil || parsedUrl.Hostname() == "" {
 		fmt.Println("Error parsing URL or invalid URL provided:", err)
