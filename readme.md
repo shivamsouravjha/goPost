@@ -24,7 +24,7 @@ cd goPost
 ## Usage
 To run this tool and convert traffic logs into a Postman collection, follow the steps below:
 ```bash
-go build -o goPost . && mv goPost /usr/local/bin/goPost
+go build -o goPost . && sudo mv goPost /usr/local/bin/goPost
 ```
 
 Use this binary whereever Keploy folder is stored
