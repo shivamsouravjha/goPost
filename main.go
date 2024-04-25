@@ -16,37 +16,35 @@ import (
 )
 
 func parseCurlCommand(curlCommand string) map[string]interface{} {
-	// Simplify newlines and spaces for easier regex processing
+	// Normalize the curl command by removing newlines and backslashes for easier processing
 	curlCommand = strings.Replace(curlCommand, "\\\n", " ", -1)
 	curlCommand = strings.Replace(curlCommand, "\n", " ", -1)
 
-	reMethodAndUrl := regexp.MustCompile(`--request (\w+) '([^']*)'`)
+	// Regular expressions to capture parts of the curl command
+	reMethodAndUrl := regexp.MustCompile(`--request\s+(\w+)\s+--url\s+([^ ]+)`)
 	reHeader := regexp.MustCompile(`--header '([^:]+): ([^']*)'`)
+	reData := regexp.MustCompile(`--data '(\{.*?\})'`)
 	reDataRaw := regexp.MustCompile(`--data-raw '(\{.*?\})'`)
 
+	// Extract method and URL
 	matches := reMethodAndUrl.FindStringSubmatch(curlCommand)
 	method, extractedUrl := "GET", ""
 	if len(matches) > 2 {
 		method = matches[1]
 		extractedUrl = matches[2]
 	}
-
+	// Default to http if no scheme is specified
 	if !strings.Contains(extractedUrl, "://") {
-		extractedUrl = "http://" + extractedUrl // Assume HTTP if no scheme is given
+		extractedUrl = "http://" + extractedUrl
+	}
+	fmt.Println(extractedUrl)
+	parsedUrl, err := url.Parse(extractedUrl)
+	if err != nil || parsedUrl.Hostname() == "" {
+		fmt.Println("Error parsing URL or invalid URL provided:", err)
+		return nil
 	}
 
-	parsedUrl, _ := url.Parse(extractedUrl)
-	query := []map[string]interface{}{}
-	for key, values := range parsedUrl.Query() {
-		for _, value := range values {
-			query = append(query, map[string]interface{}{
-				"key":      key,
-				"value":    value,
-				"disabled": false,
-			})
-		}
-	}
-
+	// Extract headers
 	headers := []map[string]string{}
 	for _, match := range reHeader.FindAllStringSubmatch(curlCommand, -1) {
 		headers = append(headers, map[string]string{
@@ -55,21 +53,24 @@ func parseCurlCommand(curlCommand string) map[string]interface{} {
 		})
 	}
 
-	dataRawMatch := reDataRaw.FindStringSubmatch(curlCommand)
+	// Extract data
+	dataMatch := reData.FindStringSubmatch(curlCommand)
+	if len(dataMatch) == 0 {
+		dataMatch = reDataRaw.FindStringSubmatch(curlCommand)
+	}
 	rawData := ""
-	mode := "none"
-	if len(dataRawMatch) > 1 {
-		rawData = dataRawMatch[1]
-		mode = "raw"
+	if len(dataMatch) > 1 {
+		rawData = dataMatch[1]
 	}
 
-	// Extracting the last element of the path to use as the name
+	// Extract the last segment of the path as the name
 	pathSegments := strings.Split(strings.Trim(parsedUrl.Path, "/"), "/")
 	name := "Generated from Curl"
 	if len(pathSegments) > 0 {
 		name = pathSegments[len(pathSegments)-1]
 	}
 
+	// Constructing the response
 	return map[string]interface{}{
 		"name": name,
 		"protocolProfileBehavior": map[string]interface{}{
@@ -79,7 +80,7 @@ func parseCurlCommand(curlCommand string) map[string]interface{} {
 			"method": method,
 			"header": headers,
 			"body": map[string]interface{}{
-				"mode": mode,
+				"mode": "raw",
 				"raw":  rawData,
 			},
 			"url": map[string]interface{}{
@@ -88,7 +89,7 @@ func parseCurlCommand(curlCommand string) map[string]interface{} {
 				"host":     []string{parsedUrl.Hostname()},
 				"port":     parsedUrl.Port(),
 				"path":     []string{strings.TrimLeft(parsedUrl.Path, "/")},
-				"query":    query,
+				"query":    parsedUrl.Query(),
 			},
 		},
 		"response": []interface{}{},
