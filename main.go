@@ -63,10 +63,8 @@ func parseCurlCommand(curlCommand string) map[string]interface{} {
 
 	// Extract the last segment of the path as the name
 	pathSegments := strings.Split(strings.Trim(parsedUrl.Path, "/"), "/")
-	name := "Generated from Curl"
-	if len(pathSegments) > 0 {
-		name = pathSegments[len(pathSegments)-1]
-	}
+	// Create the name by joining segments with dashes
+	name := strings.Join(pathSegments, "-")
 
 	// Constructing the response
 	return map[string]interface{}{
