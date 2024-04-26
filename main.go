@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -151,11 +150,12 @@ func main() {
 				continue
 			}
 			// Read the "tests" subfolder
-			testFiles, err := ioutil.ReadDir(testsDir)
+			testFiles, err := os.ReadDir(testsDir)
 			if err != nil {
 				fmt.Println("Error reading 'tests' directory:", err)
 				continue
 			}
+			testCases := []interface{}{}
 			for _, testFile := range testFiles {
 				if filepath.Ext(testFile.Name()) == ".yaml" {
 					filePath := filepath.Join(testsDir, testFile.Name())
@@ -176,10 +176,16 @@ func main() {
 					}
 					if curl, ok := yamlData["curl"].(string); ok {
 						requestJSON := parseCurlCommand(curl)
-						collection.Items = append(collection.Items, requestJSON)
+
+						testCases = append(testCases, requestJSON)
 					}
 				}
 			}
+			requestFile := map[string]interface{}{
+				"name": v.Name(),
+				"item": testCases,
+			}
+			collection.Items = append(collection.Items, requestFile)
 
 		}
 	}
